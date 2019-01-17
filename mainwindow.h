@@ -4,6 +4,9 @@
 #include <QMainWindow>
 #include <QTreeWidgetItem>
 #include <QMap>
+#include <QSet>
+#include <QPair>
+#include <QDateTime>
 #include <QProgressBar>
 #include <QThread>
 #include <QString>
@@ -26,27 +29,26 @@ public:
     ~main_window();
 
 private slots:
-    void stop_scanning();
-    void delete_element(QTreeWidgetItem *deleted);
-    void prepare_menu(const QPoint &pos);
+    //void stop_scanning();
     void select_directory();
-    void show_next_dublicates();
-    void show_prev_dublicates();
     void scan_directory(QString const& dir);
     void show_about_dialog();
-    void show_percentage(int i);
-    void make_window(const QMap<QString, QVector<QString> >  &_data, const QString &_dir);
+    void show_percentage();
+    void add_info(const QMap<QString, QPair<QDateTime, QSet<qint32> > >  &_data);
+    void add_info(const QVector<QString>  &_data);
 private:
-    void increment();
-    void decrement();
-    void delete_selected();
-    void try_to_show(std::function<void()>);
+    bool is_running();
+    void find_word();
+    void get_files(const QString &dir, QMap<QString, bool> &was, QVector<QString> &fileList, bool isSearch);
     void show_current();
+    QString currentDir;
+    int cnt, currentCnt, finishedThreads;
     QProgressBar* progressBar;
-    scanner* scan;
-    QThread* thread;
-    QMap<QString, QVector<QString> >::iterator current;
-    QMap<QString, QVector<QString> > data;
+    QVector<scanner*> scan;
+    QVector<finder*> search;
+    QVector<QThread*> threads;
+    QMap<QString, QPair<QDateTime, QSet<qint32> > > data;
+    QVector<QString> fileNames;
     std::unique_ptr<Ui::MainWindow> ui;
 };
 

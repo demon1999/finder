@@ -13,25 +13,19 @@ class scanner : public QObject
 
 private:
     std::atomic<bool> aborted_flag;
-    int counter;
-    int number_of_files;
-    int now_percentage;
-    QString dir;
-    QMap<int, QVector<QString> > names;
-    QMap<QString, bool> was;
-    QMap<QString, QVector<QString> > data;
-    void get_data(const QString &dir);
-    void load_data();
+    QVector<QString> paths;
+    QMap<QString, QPair<QDateTime, QSet<qint32> > > data;
     void change_percentage();
+    void load_data();
 public:
-    scanner(const QString &dir_name);
+    scanner();
     void set_flag();
+    void add_file(const QString &path);
 public slots:
     void run();
-    QMap<QString, QVector<QString> > get_map_data();
 signals:
-    void percentage(int k);
-    void done(const QMap<QString, QVector<QString> >  &_data, const QString &_dir);
+    void percentage();
+    void done(const QMap<QString, QPair<QDateTime, QSet<qint32> > > &);
     void finished();
 };
 #endif // SCANNER_H

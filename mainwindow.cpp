@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "scanner.h"
 
+#include <iostream>
 #include <QMap>
 #include <QVector>
 #include <QString>
@@ -31,22 +32,16 @@ main_window::main_window(QWidget *parent)
     progressBar->setAlignment(Qt::AlignRight);
     progressBar->setMinimumSize(210, 30);
     setGeometry(QStyle::alignedRect(Qt::LeftToRight, Qt::AlignCenter, size(), qApp->desktop()->availableGeometry()));
-    ui->treeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
     ui->treeWidget->header()->setSectionResizeMode(0, QHeaderView::Stretch);
-    ui->treeWidget->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    thread = new QThread;
-    connect(ui->treeWidget, &QTreeWidget::customContextMenuRequested, this, &main_window::prepare_menu);
+    int k = QThread::idealThreadCount() - 2;
+    if (k == 1) k = 2;
+    for (int i = 0; i < k; i++)
+        threads.append(new QThread);
     QCommonStyle style;
     ui->actionScan_Directory->setIcon(style.standardIcon(QCommonStyle::SP_DialogOpenButton));
-    ui->actionPrev_Group_Of_Dublicates->setIcon(style.standardIcon(QCommonStyle::SP_ArrowLeft));
-    ui->actionNext_Group_Of_Dublicates->setIcon(style.standardIcon(QCommonStyle::SP_ArrowRight));
     ui->actionExit->setIcon(style.standardIcon(QCommonStyle::SP_DialogCloseButton));
     ui->actionAbout->setIcon(style.standardIcon(QCommonStyle::SP_DialogHelpButton));
-    ui->treeWidget->setSelectionMode(QAbstractItemView::MultiSelection);
-    connect(ui->actionDeleteSelected,&QAction::triggered,this, &main_window::delete_selected);
-    connect(ui->actionStop, &QAction::triggered, this, &main_window::stop_scanning);
-    connect(ui->actionPrev_Group_Of_Dublicates, &QAction::triggered, this, &main_window::show_prev_dublicates);
-    connect(ui->actionNext_Group_Of_Dublicates, &QAction::triggered, this, &main_window::show_next_dublicates);
+    //connect(ui->actionStop, &QAction::triggered, this, &main_window::stop_scanning);
     connect(ui->actionScan_Directory, &QAction::triggered, this, &main_window::select_directory);
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
     connect(ui->actionAbout, &QAction::triggered, this, &main_window::show_about_dialog);
@@ -56,95 +51,6 @@ main_window::main_window(QWidget *parent)
 main_window::~main_window()
 {}
 
-void main_window::delete_selected() {
-    QList<QTreeWidgetItem*> sel_items = ui->treeWidget->selectedItems();
-    for(int i=0; i<sel_items.size(); i++){
-        QFile(sel_items[i]->text(0)).remove();
-    }
-    try_to_show([this](){return this->increment();});
-}
-void main_window::prepare_menu(const QPoint & pos) {
-    QTreeWidget *tree = ui->treeWidget;
-
-    QTreeWidgetItem *current_item = tree->itemAt( pos );
-    QAction *delete_action = new QAction(QIcon(":/Resource/warning32.ico"), tr("&Delete"), this);
-
-    connect(delete_action, &QAction::triggered, this, [current_item, this]() {
-                delete_element(current_item);});
-
-
-    QMenu menu(this);
-    menu.addAction(delete_action);
-
-    QPoint pt(pos);
-    menu.exec( tree->mapToGlobal(pos) );
-}
-
-void main_window::try_to_show(std::function<void()> change) {
-    while (true) {
-        if (data.empty()) {
-            current = data.begin();
-            break;
-        }
-        auto& v = *current;
-        v.erase(std::remove_if(v.begin(), v.end(), [](const QString &path) {
-            return !QFile(path).exists();
-        }), v.end());
-        if (v.size() > 1) {
-            break;
-        } else {
-            auto it = current;
-            it++;
-            if (it == data.end() && current == data.begin()) {
-                data.clear();
-                current = data.begin();
-                break;
-            }
-            it--;
-            change();
-            data.erase(it);
-        }
-    }
-    show_current();
-}
-
-void main_window::delete_element(QTreeWidgetItem *deleted) {
-    QString path = deleted->text(0);
-    if (!QFile(path).exists()) {
-        QMessageBox::information(nullptr, "error", "File doesn't exist.");
-    } else
-    if (!QFile(path).remove()) {
-        QMessageBox::information(nullptr, "error", "Can't be deleted.");
-    }
-    try_to_show([this](){return this->increment();});
-}
-
-void main_window::increment() {
-    current++;
-    if (current == data.end())
-        current = data.begin();
-}
-
-void main_window::decrement() {
-    if (current == data.begin())
-        current = data.end();
-    current--;
-}
-
-void main_window::show_next_dublicates() {
-    if (data.empty()) {
-        current = data.begin();
-    } else
-        increment();
-    try_to_show([this](){return this->increment();});
-}
-
-void main_window::show_prev_dublicates() {
-    if (data.empty()) return;
-    decrement();
-    try_to_show([this](){return this->decrement();});
-}
-
 void main_window::select_directory()
 {
     QString dir = QFileDialog::getExistingDirectory(this, "Select Directory for Scanning",
@@ -152,70 +58,212 @@ void main_window::select_directory()
     scan_directory(dir);
 }
 
-void main_window::stop_scanning() {
-    if (scan == nullptr)
-        return;
-    scan->set_flag();
-    progressBar->hide();
+//void main_window::stop_scanning() {
+
+//    if (scan == nullptr)
+//        return;
+//    scan->set_flag();
+//    progressBar->hide();
+//}
+
+void main_window::get_files(const QString &dir, QMap<QString, bool> &was, QVector<QString> &fileList, bool isSearch) {
+    QDir d(dir);
+    if (was[d.canonicalPath()]) return;
+    was[d.canonicalPath()] = true;
+
+    QFileInfoList list = d.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
+
+    for (QFileInfo file_info : list)
+    {
+        if (file_info.isSymLink()) {
+            get_files(file_info.absoluteFilePath(), was, fileList, isSearch);
+        } else
+        if (file_info.isDir()) {
+            if (QDir(file_info.absoluteFilePath()).isReadable())
+                get_files(file_info.absoluteFilePath(), was, fileList, isSearch);
+        } else {
+            QString path = file_info.canonicalFilePath();
+            if (((data.find(path) == data.end() || data[path].first != file_info.lastModified()) && !isSearch) ||
+                (data.find(path) != data.end() && !data[path].second.empty() && isSearch))
+                fileList.append(path);
+        }
+    }
 }
 
+bool main_window::is_running() {
+    for (auto thread : threads) {
+        if (thread->isRunning()) {
+            QMessageBox::information(nullptr, "info", "You can't start new search, before previous one has finished.");
+            return true;
+        }
+    }
+    return false;
+}
 void main_window::scan_directory(QString const& dir)
 {
-    if (thread->isRunning()) {
-        QMessageBox::information(nullptr, "info", "You can't start new scanning, before previous one has finished.");
+    if (is_running()) {
         return;
-    };
+    }
 
     progressBar->show();
     progressBar->setValue(0);
-    QDir d(dir);
+    progressBar->setFormat("update progress: " + QString::number(0) + "%");
 
-    scan = new scanner(dir);
-    scan->moveToThread(thread);
-    connect(scan, SIGNAL(percentage(int)), this, SLOT(show_percentage(int)));
-    connect(thread, SIGNAL(started()), scan, SLOT(run()));
-    connect(scan, SIGNAL(finished()), thread, SLOT(quit()));
+    finishedThreads = 0;
+    QVector<QString> fileList;
+    QMap<QString, bool> was;
+    get_files(dir, was, fileList, false);
 
-    qRegisterMetaType<QMap<QString, QVector<QString> > >("QMap<QString, QVector<QString> >");
-    qRegisterMetaType<QMap<QString, QString> >("QMap<QString, QString>");
-    connect(scan, SIGNAL(done(const QMap<QString, QVector<QString> > &,
-                              const QString&)), this,
-                  SLOT(make_window(const QMap<QString, QVector<QString> > &, const QString&)));
-    thread->start();
+    currentDir = dir;
+    cnt = fileList.size();
+    currentCnt = 0;
+    scan.resize(0);
+    QSet<QPair<long long, long long> > sizes;
+
+    for (int i = 0; i < threads.size(); i++) {
+        scan.push_back(new scanner());
+        sizes.insert({0, i});
+    }
+
+    for (auto path : fileList) {
+        QPair<long long, long long> now = *sizes.begin();
+        sizes.erase(sizes.begin());
+        now.first += QFile(path).size();
+        sizes.insert(now);
+        scan[now.second]->add_file(path);
+    }
+
+    for (int i = 0; i < threads.size(); i++) {
+        scan[i]->moveToThread(threads[i]);
+        connect(scan[i], SIGNAL(percentage()), this, SLOT(show_percentage()));
+        connect(threads[i], SIGNAL(started()), scan[i], SLOT(run()));
+        connect(scan[i], SIGNAL(finished()), threads[i], SLOT(quit()));
+        qRegisterMetaType<QMap<QString, QPair<QDateTime, QSet<qint32> > > >("QMap<QString, QPair<QDateTime, QSet<qint32> > >");
+        connect(scan[i], SIGNAL(done(const QMap<QString, QPair<QDateTime, QSet<qint32> > > &)), this, SLOT(add_info(const QMap<QString, QPair<QDateTime, QSet<qint32> > > &)));
+        threads[i]->start();
+    }
 }
 
-void main_window::show_percentage(int k) {
-    progressBar->setValue(k);
+void main_window::show_percentage() {
+    currentCnt++;
+
+    QString text = progressBar->text();
+    QString p = "";
+    for (int i = 0; i < text.size(); i++) {
+        if (text[i] >= '0' && text[i] <= '9') break;
+        p += text[i];
+    }
+    if (cnt == 0) {
+        progressBar->setValue(100);;
+        progressBar->setFormat(p + QString::number(100) + "%");
+    } else {
+        progressBar->setValue(currentCnt * 100 / cnt);
+        progressBar->setFormat(p + QString::number(progressBar->value()) + "%");
+    }
     progressBar->show();
 }
 
-void main_window::make_window(const QMap<QString, QVector<QString> >  &_data, const QString &_dir) {
-    ui->treeWidget->clear();
+void main_window::add_info(const QMap<QString, QPair<QDateTime, QSet<qint32> > > & _data) {
+    finishedThreads++;
+    for (auto v = _data.begin(); v != _data.end(); v++)
+        data[v.key()] = v.value();
+    if (finishedThreads == threads.size()) {
+        for (auto &thread : threads) {
+            if (thread->isRunning()) {
+                thread->quit();
+            }
+        }
+        find_word();
+        return;
+    }
+//    progressBar->hide();
+}
 
-    progressBar->hide();
-    setWindowTitle(QString("Directory Content - %1").arg(_dir));
-    int cnt = 0;
-    for (auto v : _data)
-        cnt += v.size();
-    data = _data;
-    current = data.begin();
-    try_to_show([this](){return this->increment();});
+void main_window::find_word() {
+    if (is_running()) {
+        return;
+    }
+
+    progressBar->setValue(0);
+    progressBar->setFormat("search progress: " + QString::number(0) + "%");
+
+    finishedThreads = 0;
+    QVector<QString> fileList;
+    QMap<QString, bool> was;
+    get_files(dir, was, fileList, true);
+    cnt = fileList.size();
+    currentCnt = 0;
+    search.resize(0);
+    fileNames.resize(0);
+
+    for (int i = 0; i < threads.size(); i++) {
+        search.push_back(new finder("kukarek"));
+        for (int j = i; j < fileList.size(); j += threads.size()) {
+            search[i]->addFile(fileList[j], data[fileList[j]]);
+        }
+    }
+
+    for (int i = 0; i < threads.size(); i++) {
+        search[i]->moveToThread(threads[i]);
+        connect(search[i], SIGNAL(percentage()), this, SLOT(show_percentage()));
+        connect(threads[i], SIGNAL(started()), search[i], SLOT(run()));
+        connect(search[i], SIGNAL(finished()), threads[i], SLOT(quit()));
+        qRegisterMetaType<QVector<QString> >("QVector<QString>");
+        connect(search[i], SIGNAL(done(const QVector<QString> &)), this, SLOT(add_info(const QVector<QString> &)));
+        threads[i]->start();
+    }
+}
+
+void main_window::add_info(const QVector<QString> &paths) {
+    finishedThreads++;
+    for (auto path : paths)
+        fileNames.append(path);
+    if (finishedThreads == threads.size()) {
+        for (auto &thread : threads)
+            thread->quit();
+        setWindowTitle("files of " + currentDir + " which contain " + "\"" + "kukarek" + "\" as a substring");
+        show_current();
+        return;
+    }
+
 }
 void main_window::show_current() {
     QString title = QWidget::windowTitle();
     ui->treeWidget->clear();
+    ui->treeWidget->hide();
     setWindowTitle(title);
 
-    if (current == data.end()) {
+    if (fileNames.empty()) {
+        ui->treeWidget->show();
         return;
     }
-    auto v = *current;
-    for (auto eq_files : v) {
-        QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidget);
-        item->setText(0, eq_files);
-        item->setText(1, QString::number(QFile(eq_files).size()));
-        ui->treeWidget->addTopLevelItem(item);
+
+    std::sort(fileNames.begin(), fileNames.end());
+    QString prevFilename = "/home";
+
+    QTreeWidgetItem *last = new QTreeWidgetItem(ui->treeWidget);
+    last->setText(0, "home");
+
+    for (const auto & filename : fileNames) {
+        QStringList filenameParts = filename.split('/').mid(1);
+        QStringList prevFilenameParts = prevFilename.split('/').mid(1);
+        int cnt = 0;
+        for (int i = 0; i < std::min(filenameParts.size(), prevFilenameParts.size()); i++) {
+            if (filenameParts[i] != prevFilenameParts[i]) break;
+            cnt++;
+        }
+        for (int i = 0; i < prevFilenameParts.size() - cnt; i++)
+            last = last->parent();
+        for (int i = cnt; i < filenameParts.size(); i++) {
+            QTreeWidgetItem *treeItem = new QTreeWidgetItem();
+            //treeItem->setIcon();
+            treeItem->setText(0, filenameParts[i]);
+            last->addChild(treeItem);
+            last = treeItem;
+        }
+        prevFilename = filename;
     }
+    ui->treeWidget->show();
 }
 
 void main_window::show_about_dialog()
