@@ -103,7 +103,7 @@
   </action>
   <action name="actionScan_Directory">
    <property name="text">
-    <string>&amp;Scan Directory...</string>
+    <string>&amp;Select options...</string>
    </property>
   </action>
   <action name="actionExit">
