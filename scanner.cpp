@@ -23,7 +23,7 @@ void scanner::add_file(const QString &path) {
 
 void scanner::run() {
     data.clear();
-    load_data();
+    indexing();
     if (aborted_flag == false)
         emit done(data);
     emit finished();
@@ -35,10 +35,8 @@ void scanner::change_percentage() {
 
 
 
-void scanner::load_data() {
+void scanner::indexing() {
     for (auto path : paths) {
-      //change_percentage();
-      //continue;
       if (aborted_flag == true)
           break;
       QFile file(path);
@@ -50,7 +48,7 @@ void scanner::load_data() {
       qint64 cnt = file.size();
       qint64 get = 0;
       QSet<qint32> s;
-      const qint64 max_len = qint64(1e5), max_count = qint64(2e5);
+      const qint64 max_len = qint64(1 << 20), max_count = qint64(2e5);
       std::deque<unsigned int> q;
       char str[max_len + 100];
       while (get < cnt) {

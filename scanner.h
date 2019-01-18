@@ -16,7 +16,7 @@ private:
     QVector<QString> paths;
     QMap<QString, QPair<QDateTime, QSet<qint32> > > data;
     void change_percentage();
-    void load_data();
+    void indexing();
 public:
     scanner();
     void set_flag();

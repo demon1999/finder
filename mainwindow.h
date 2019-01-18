@@ -15,6 +15,7 @@
 #include <memory>
 #include <iterator>
 #include "scanner.h"
+#include "finder.h"
 
 namespace Ui {
 class MainWindow;
@@ -29,7 +30,7 @@ public:
     ~main_window();
 
 private slots:
-    //void stop_scanning();
+    void stop_scanning();
     void select_directory();
     void scan_directory(QString const& dir);
     void show_about_dialog();
@@ -42,11 +43,11 @@ private:
     void get_files(const QString &dir, QMap<QString, bool> &was, QVector<QString> &fileList, bool isSearch);
     void show_current();
     QString currentDir;
-    int cnt, currentCnt, finishedThreads;
+    int cnt, currentCnt, numberOfThreads, finishedThreads;
     QProgressBar* progressBar;
     QVector<scanner*> scan;
     QVector<finder*> search;
-    QVector<QThread*> threads;
+    QVector<QThread*> threadsForScanning, threadsForSearch;
     QMap<QString, QPair<QDateTime, QSet<qint32> > > data;
     QVector<QString> fileNames;
     std::unique_ptr<Ui::MainWindow> ui;
