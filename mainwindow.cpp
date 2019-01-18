@@ -5,9 +5,11 @@
 
 #include <iostream>
 #include <QMap>
+#include <QInputDialog>
 #include <QVector>
 #include <QString>
 #include <QFile>
+#include <QTextEdit>
 #include <QTextStream>
 #include <QIODevice>
 #include <QCryptographicHash>
@@ -42,7 +44,7 @@ main_window::main_window(QWidget *parent)
     ui->actionExit->setIcon(style.standardIcon(QCommonStyle::SP_DialogCloseButton));
     ui->actionAbout->setIcon(style.standardIcon(QCommonStyle::SP_DialogHelpButton));
     connect(ui->actionStop, &QAction::triggered, this, &main_window::stop_scanning);
-    connect(ui->actionScan_Directory, &QAction::triggered, this, &main_window::select_directory);
+    connect(ui->actionScan_Directory, &QAction::triggered, this, &main_window::select_options);
     connect(ui->actionExit, &QAction::triggered, this, &QWidget::close);
     connect(ui->actionAbout, &QAction::triggered, this, &main_window::show_about_dialog);
 
@@ -51,11 +53,20 @@ main_window::main_window(QWidget *parent)
 main_window::~main_window()
 {}
 
-void main_window::select_directory()
+void main_window::select_options()
 {
+    QInputDialog *inputDialog = new QInputDialog(ui->centralWidget);
+    inputDialog->setLabelText("write text to find");
+    inputDialog->setOkButtonText("select directory");
+    inputDialog->show();
+    QObject::connect(inputDialog, SIGNAL(textValueSelected(const QString &)), this, SLOT(select_directory(const QString &)));
+    inputDialog->exec();
+}
+
+void main_window::select_directory(const QString &text) {
     QString dir = QFileDialog::getExistingDirectory(this, "Select Directory for Scanning",
                                                     QString(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    scan_directory(dir);
+    scan_directory(dir, text);
 }
 
 void main_window::stop_scanning() {
@@ -105,15 +116,16 @@ bool main_window::is_running() {
     }
     return false;
 }
-void main_window::scan_directory(QString const& dir)
+void main_window::scan_directory(QString const& dir, QString const& text)
 {
     if (is_running()) {
         return;
     }
 
-    progressBar->show();
+    textToFind = text;
     progressBar->setValue(0);
     progressBar->setFormat("indexing progress: " + QString::number(0) + "%");
+    progressBar->show();
 
     finishedThreads = 0;
     QVector<QString> fileList;
@@ -169,7 +181,8 @@ void main_window::show_percentage() {
         progressBar->setValue(currentCnt * 100 / cnt);
         progressBar->setFormat(p + QString::number(progressBar->value()) + "%");
     }
-    progressBar->show();
+    if (progressBar->isVisible())
+        progressBar->show();
 }
 
 void main_window::add_info(const QMap<QString, QPair<QDateTime, QSet<qint32> > > & _data) {
@@ -178,9 +191,10 @@ void main_window::add_info(const QMap<QString, QPair<QDateTime, QSet<qint32> > >
         data[v.key()] = v.value();
     if (finishedThreads == numberOfThreads) {
         find_word();
+        progressBar->hide();
         return;
     }
-    progressBar->hide();
+
 }
 
 void main_window::find_word() {
@@ -202,7 +216,7 @@ void main_window::find_word() {
     fileNames.resize(0);
 
     for (int i = 0; i < threadsForSearch.size(); i++) {
-        search.push_back(new finder("kukarek"));
+        search.push_back(new finder(textToFind));
         for (int j = i; j < fileList.size(); j += threadsForSearch.size()) {
             search[i]->add_file(fileList[j], data[fileList[j]]);
         }
@@ -225,6 +239,7 @@ void main_window::add_info(const QVector<QString> &paths) {
     if (finishedThreads == numberOfThreads) {
         setWindowTitle("files of " + currentDir + " which contain " + "\"" + "kukarek" + "\" as a substring");
         show_current();
+        progressBar->hide();
         return;
     }
 }

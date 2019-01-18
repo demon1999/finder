@@ -31,10 +31,11 @@ public:
 
 private slots:
     void stop_scanning();
-    void select_directory();
-    void scan_directory(QString const& dir);
+    void select_options();
+    void scan_directory(QString const& dir, QString const& text);
     void show_about_dialog();
     void show_percentage();
+    void select_directory(QString const &text);
     void add_info(const QMap<QString, QPair<QDateTime, QSet<qint32> > >  &_data);
     void add_info(const QVector<QString>  &_data);
 private:
@@ -43,6 +44,7 @@ private:
     void get_files(const QString &dir, QMap<QString, bool> &was, QVector<QString> &fileList, bool isSearch);
     void show_current();
     QString currentDir;
+    QString textToFind;
     int cnt, currentCnt, numberOfThreads, finishedThreads;
     QProgressBar* progressBar;
     QVector<scanner*> scan;
