@@ -11,6 +11,7 @@
 #include <QThread>
 #include <QString>
 #include <QVector>
+#include <QLabel>
 #include <functional>
 #include <memory>
 #include <iterator>
@@ -45,6 +46,7 @@ private:
     void show_current();
     QString currentDir;
     QString textToFind;
+    QLabel *label;
     int cnt, currentCnt, numberOfThreads, finishedThreads;
     QProgressBar* progressBar;
     QVector<scanner*> scan;
