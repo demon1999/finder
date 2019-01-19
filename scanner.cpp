@@ -49,10 +49,10 @@ void scanner::indexing() {
       qint64 get = 0;
       QSet<qint32> s;
       const qint64 max_len = qint64(1 << 20), max_count = qint64(2e5);
-      char str[max_len + 100];
+      char str[max_len];
       int cntt = 0, ck = 0;
       while (get < cnt) {
-          qint64 k = file.read(str, std::min(cnt - get, max_len));
+          qint64 k = file.read(str, std::min(cnt - get, max_len - 1));
           if (k == -1 || k == 0) {
               s.clear();
               break;
