@@ -2,6 +2,7 @@ test_with_different_rights
 interesting strings: "000", "111", "222", ..., "999"
 
 symlink_test
+start test from symlink_test/folder
 interesting string: "example" 
 
 same_files
