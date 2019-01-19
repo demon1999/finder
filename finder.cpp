@@ -88,7 +88,7 @@ void finder::find_word() {
       qint64 cnt = file.size();
       qint64 get = 0;
       QSet<qint32> s;
-      const qint64 max_len = qint64(1 << 20), max_count = qint64(2e5);
+      const qint64 max_len = qint64(1 << 20);
       char buffer[max_len + 100];
       int cur_pref = 0;
       ok = false;
