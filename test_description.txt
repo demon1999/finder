@@ -1,0 +1,17 @@
+test_with_different_rights
+interesting strings: "000", "111", "222", ..., "999"
+
+symlink_test
+interesting string: "example" 
+
+same_files
+interesting string: "same"
+
+empty_test
+for every string empty answer
+
+many_groups_of_same_numbers
+interesting strings: "000", "111", "222", ..., "999"
+
+test_with_interesting_string
+interesting string: "abacabadaba" and it's substrings
