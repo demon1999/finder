@@ -107,20 +107,15 @@ void main_window::get_files(const QString &dir, QMap<QString, bool> &was, QVecto
 }
 
 bool main_window::is_running() {
-    QVector<QThread*> threads;
-    threads.append(threadsForScanning);
-    threads.append(threadsForSearch);
-    for (auto thread : threads) {
-        if (thread->isRunning()) {
-            QMessageBox::information(nullptr, "info", "You can't start new search, before previous one has finished.");
-            return true;
-        }
-    }
-    return false;
+    auto is_running = [](QThread *q) {return q->isRunning();};
+    return std::any_of(threadsForScanning.begin(), threadsForScanning.end(), is_running) ||
+           std::any_of(threadsForSearch.begin(), threadsForSearch.end(), is_running);
 }
 void main_window::scan_directory(QString const& dir, QString const& text)
 {
+
     if (is_running()) {
+        QMessageBox::information(nullptr, "info", "You can't start new search, before previous one has finished.");
         return;
     }
 
