@@ -14,7 +14,6 @@ class scanner : public QObject
 private:
     std::atomic<bool> aborted_flag;
     QVector<QString> paths;
-    QMap<QString, QPair<QDateTime, QSet<qint32> > > data;
     void change_percentage();
     void indexing();
 public:
@@ -24,8 +23,9 @@ public:
 public slots:
     void run();
 signals:
+    void indexing_finished();
     void percentage();
-    void done(const QMap<QString, QPair<QDateTime, QSet<qint32> > > &);
+    void done(const QString &, const QPair<QDateTime, QSet<qint32> > &);
     void finished();
 };
 #endif // SCANNER_H

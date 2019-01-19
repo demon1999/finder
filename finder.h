@@ -21,7 +21,12 @@ private:
     QVector<qint32> prefix_function;
     QSet<qint32> indexes;
     QVector<QString> data;
-    QVector<QPair<QString, QPair<QDateTime, QSet<qint32> > > > info;
+    struct MyInfo {
+      QString path;
+      QDateTime last_modification;
+      QSet<qint32> trigrams;
+    };
+    QVector<MyInfo> info;
     QString str;
     void calc_indexes();
     void get_prefix_function();
@@ -30,7 +35,7 @@ private:
 public:
     finder(const QString& word);
     void set_flag();
-    void add_file(const QString &path, const QPair<QDateTime, QSet<qint32> > & data);
+    void add_file(const QString &path, const QDateTime &date, const QSet<qint32> &trigrams);
 public slots:
     void run();
 signals:

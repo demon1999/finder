@@ -36,8 +36,9 @@ private slots:
     void scan_directory(QString const& dir, QString const& text);
     void show_about_dialog();
     void show_percentage();
+    void indexing_finished();
     void select_directory(QString const &text);
-    void add_info(const QMap<QString, QPair<QDateTime, QSet<qint32> > >  &_data);
+    void add_info(const QString &path, const QPair<QDateTime, QSet<qint32> > &_data);
     void add_info(const QVector<QString>  &_data);
 private:
     bool is_running();

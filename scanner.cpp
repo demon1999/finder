@@ -22,10 +22,9 @@ void scanner::add_file(const QString &path) {
 }
 
 void scanner::run() {
-    data.clear();
     indexing();
     if (aborted_flag == false)
-        emit done(data);
+        emit indexing_finished();
     emit finished();
 }
 
@@ -40,9 +39,9 @@ void scanner::indexing() {
       if (aborted_flag == true)
           break;
       QFile file(path);
-      data[path] = {QDateTime(), QSet<qint32>()};
       if(!file.open(QIODevice::ReadOnly)) {
           change_percentage();
+          emit done(path, {QDateTime(), QSet<qint32>()});
           continue;
       }
       qint64 cnt = file.size();
@@ -80,7 +79,7 @@ void scanner::indexing() {
               break;
           }
       }
-      data[path] = {QFileInfo(path).lastModified(), s};
+      emit done(path, {QFileInfo(path).lastModified(), s});
       change_percentage();
     }
 }

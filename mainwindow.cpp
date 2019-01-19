@@ -156,8 +156,9 @@ void main_window::scan_directory(QString const& dir, QString const& text)
         connect(scan[i], SIGNAL(percentage()), this, SLOT(show_percentage()));
         connect(threadsForScanning[i], SIGNAL(started()), scan[i], SLOT(run()));
         connect(scan[i], SIGNAL(finished()), threadsForScanning[i], SLOT(quit()));
-        qRegisterMetaType<QMap<QString, QPair<QDateTime, QSet<qint32> > > >("QMap<QString, QPair<QDateTime, QSet<qint32> > >");
-        connect(scan[i], SIGNAL(done(const QMap<QString, QPair<QDateTime, QSet<qint32> > > &)), this, SLOT(add_info(const QMap<QString, QPair<QDateTime, QSet<qint32> > > &)));
+        qRegisterMetaType<QPair<QDateTime, QSet<qint32> > >("QPair<QDateTime, QSet<qint32> >");
+        connect(scan[i], SIGNAL(done(const QString&, const QPair<QDateTime, QSet<qint32> > &)), this, SLOT(add_info(const QString&, const QPair<QDateTime, QSet<qint32> > &)));
+        connect(scan[i], SIGNAL(indexing_finished()), this, SLOT(indexing_finished()));
         threadsForScanning[i]->start();
     }
 }
@@ -182,16 +183,17 @@ void main_window::show_percentage() {
         progressBar->show();
 }
 
-void main_window::add_info(const QMap<QString, QPair<QDateTime, QSet<qint32> > > & _data) {
+void main_window::add_info(const QString& path, const QPair<QDateTime, QSet<qint32> >& _data) {
+    data[path] = _data;
+}
+
+void main_window::indexing_finished() {
     finishedThreads++;
-    for (auto v = _data.begin(); v != _data.end(); v++)
-        data[v.key()] = v.value();
     if (finishedThreads == numberOfThreads) {
         find_word();
         progressBar->hide();
         return;
     }
-
 }
 
 void main_window::find_word() {
@@ -215,7 +217,7 @@ void main_window::find_word() {
     for (int i = 0; i < threadsForSearch.size(); i++) {
         search.push_back(new finder(textToFind));
         for (int j = i; j < fileList.size(); j += threadsForSearch.size()) {
-            search[i]->add_file(fileList[j], data[fileList[j]]);
+            search[i]->add_file(fileList[j], data[fileList[j]].first, data[fileList[j]].second);
         }
     }
 
