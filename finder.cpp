@@ -38,7 +38,7 @@ void finder::get_prefix_function() {
 
 void finder::calc_indexes() {
     std::string s = str.toStdString();
-    for (int i = 0; i + 2 < s.size(); i++) {
+    for (size_ti = 0; i + 2 < s.size(); i++) {
         if (aborted_flag == false) break;
         indexes.insert(int(s[i]) * 256 * 256 + int(s[i]) * 256 + int(s[i]));
     }
