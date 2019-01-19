@@ -49,8 +49,8 @@ void scanner::indexing() {
       qint64 get = 0;
       QSet<qint32> s;
       const qint64 max_len = qint64(1 << 20), max_count = qint64(2e5);
-      std::deque<unsigned int> q;
       char str[max_len + 100];
+      int cntt = 0, ck = 0;
       while (get < cnt) {
           qint64 k = file.read(str, std::min(cnt - get, max_len));
           if (k == -1 || k == 0) {
@@ -62,15 +62,20 @@ void scanner::indexing() {
               break;
           }
           get += k;
+          bool bad_file = false;
           for (int i = 0; i < k; i++) {
-              if (q.size() == 3)
-                  q.pop_front();
-              q.push_back((unsigned int)str[i]);
-              if (q.size() == 3) {
-                  s.insert(q.front() * 256 * 256 + q.back() + (q.begin()[1]) * 256);
+              if (str[i] == 0) {
+                  bad_file = true;
+                  break;
+              }
+              cntt++;
+              ck = (ck & ((1 << 16) - 1)) * 256 + int(str[i]);
+              if (cntt >= 3) {
+                  cntt = 3;
+                  s.insert(ck);
               }
           }
-          if (s.size() >= max_count) {
+          if (s.size() >= max_count || bad_file == true) {
               s.clear();
               break;
           }
