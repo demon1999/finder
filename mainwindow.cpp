@@ -84,7 +84,7 @@ void main_window::get_files(const QString &dir, QMap<QString, bool> &was, QVecto
     QDir d(dir);
     if (was[d.canonicalPath()]) return;
     was[d.canonicalPath()] = true;
-//    std::cout << d.canonicalPath().toStdString() << "\n";
+    //std::cout << d.canonicalPath().toStdString() << "\n";
     QFileInfoList list = d.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
 
     for (QFileInfo file_info : list)
@@ -93,13 +93,15 @@ void main_window::get_files(const QString &dir, QMap<QString, bool> &was, QVecto
             get_files(file_info.canonicalPath(), was, fileList, isSearch);
         } else
         if (file_info.isDir()) {
-            if (QDir(file_info.absolutePath()).isReadable())
-                get_files(file_info.absolutePath(), was, fileList, isSearch);
+            if (QDir(file_info.absoluteFilePath()).isReadable())
+                get_files(file_info.absoluteFilePath(), was, fileList, isSearch);
         } else {
             QString path = file_info.canonicalFilePath();
             if (((data.find(path) == data.end() || data[path].first != file_info.lastModified()) && !isSearch) ||
-                (data.find(path) != data.end() && !data[path].second.empty() && isSearch))
+                (data.find(path) != data.end() && !data[path].second.empty() && isSearch)) {
                 fileList.append(path);
+                //std::cout << path.toStdString();
+            }
         }
     }
 }
