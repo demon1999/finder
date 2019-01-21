@@ -13,6 +13,7 @@
 #include <QVector>
 #include <QLabel>
 #include <functional>
+#include <QFileSystemWatcher>
 #include <memory>
 #include <iterator>
 #include "scanner.h"
@@ -38,22 +39,26 @@ private slots:
     void show_percentage();
     void indexing_finished();
     void select_directory(QString const &text);
-    void add_info(const QString &path, const QPair<QDateTime, QSet<qint32> > &_data);
+    void add_info(const QString &path, const QSet<qint32> &_data);
     void add_info(const QVector<QString>  &_data);
+    void directoryChanged(const QString &path);
 private:
     bool is_running();
     void find_word();
     void get_files(const QString &dir, QMap<QString, bool> &was, QVector<QString> &fileList, bool isSearch);
     void show_current();
+
     QString currentDir;
     QString textToFind;
     QLabel *label;
+    QVector<QString> changed;
+    QFileSystemWatcher *watcher;
     int cnt, currentCnt, numberOfThreads, finishedThreads;
     QProgressBar* progressBar;
     QVector<scanner*> scan;
     QVector<finder*> search;
     QVector<QThread*> threadsForScanning, threadsForSearch;
-    QMap<QString, QPair<QDateTime, QSet<qint32> > > data;
+    QMap<QString, QSet<qint32> > data;
     QVector<QString> fileNames;
     std::unique_ptr<Ui::MainWindow> ui;
 };

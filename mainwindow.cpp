@@ -3,6 +3,7 @@
 #include "scanner.h"
 #include "finder.h"
 
+#include <QtAlgorithms>
 #include <iostream>
 #include <QMap>
 #include <QInputDialog>
@@ -40,7 +41,7 @@ main_window::main_window(QWidget *parent)
     if (k <= 0) k = 2;
     numberOfThreads = k;
     QCommonStyle style;
-    ui->actionScan_Directory->setIcon(style.standardIcon(QCommonStyle::SP_DialogOpenButton));
+    ui->actionScan_Directory->setIcon(style.standardIcon(QCommonStyle::SP_FileDialogContentsView));
     ui->actionExit->setIcon(style.standardIcon(QCommonStyle::SP_DialogCloseButton));
     ui->actionAbout->setIcon(style.standardIcon(QCommonStyle::SP_DialogHelpButton));
     connect(ui->actionStop, &QAction::triggered, this, &main_window::stop_scanning);
@@ -87,19 +88,23 @@ void main_window::get_files(const QString &dir, QMap<QString, bool> &was, QVecto
     //std::cout << d.canonicalPath().toStdString() << "\n";
     QFileInfoList list = d.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
 
+    if (!isSearch)
+        watcher->addPath(dir);
     for (QFileInfo file_info : list)
     {
         if (file_info.isSymLink()) {
-            get_files(file_info.canonicalPath(), was, fileList, isSearch);
+            //ignore
         } else
         if (file_info.isDir()) {
             if (QDir(file_info.absoluteFilePath()).isReadable())
                 get_files(file_info.absoluteFilePath(), was, fileList, isSearch);
         } else {
             QString path = file_info.canonicalFilePath();
-            if (((data.find(path) == data.end() || data[path].first != file_info.lastModified()) && !isSearch) ||
-                (data.find(path) != data.end() && !data[path].second.empty() && isSearch)) {
+            if ((!isSearch) ||
+                (data.find(path) != data.end() && !data[path].empty() && isSearch)) {
                 fileList.append(path);
+                if (!isSearch)
+                    watcher->addPath(path);
                 //std::cout << path.toStdString();
             }
         }
@@ -111,6 +116,18 @@ bool main_window::is_running() {
     return std::any_of(threadsForScanning.begin(), threadsForScanning.end(), is_running) ||
            std::any_of(threadsForSearch.begin(), threadsForSearch.end(), is_running);
 }
+
+void main_window::directoryChanged(const QString &path) {
+    if (QFileInfo(path).isDir()) {
+        QMap<QString, bool> was;
+        get_files(path, was, changed, false);
+    }
+    if (QFileInfo(path).isFile()) {
+        changed.push_back(path);
+        watcher->addPath(path);
+    }
+}
+
 void main_window::scan_directory(QString const& dir, QString const& text)
 {
 
@@ -127,12 +144,29 @@ void main_window::scan_directory(QString const& dir, QString const& text)
     finishedThreads = 0;
     QVector<QString> fileList;
     QMap<QString, bool> was;
-    get_files(dir, was, fileList, false);
+    if (currentDir == dir) {
+        qSwap(fileList, changed);
+        for (auto v : fileList) {
+            auto it = data.find(v);
+            if (it != data.end())
+                data.erase(it);
+        }
+    } else {
+        currentDir = dir;
+        watcher = new QFileSystemWatcher;
+        get_files(dir, was, fileList, false);
+    }
+    changed.clear();
 
+    connect(watcher, SIGNAL(directoryChanged(const QString &)), this, SLOT(directoryChanged(const QString &)));
+    connect(watcher, SIGNAL(fileChanged(const QString &)), this, SLOT(directoryChanged(const QString &)));
+
+    for (auto v : threadsForScanning)
+        v->quit();
     threadsForScanning.resize(0);
     for (int i = 0; i < numberOfThreads; i++)
         threadsForScanning.push_back(new QThread);
-    currentDir = dir;
+
     cnt = fileList.size();
     currentCnt = 0;
     scan.resize(0);
@@ -156,8 +190,8 @@ void main_window::scan_directory(QString const& dir, QString const& text)
         connect(scan[i], SIGNAL(percentage()), this, SLOT(show_percentage()));
         connect(threadsForScanning[i], SIGNAL(started()), scan[i], SLOT(run()));
         connect(scan[i], SIGNAL(finished()), threadsForScanning[i], SLOT(quit()));
-        qRegisterMetaType<QPair<QDateTime, QSet<qint32> > >("QPair<QDateTime, QSet<qint32> >");
-        connect(scan[i], SIGNAL(done(const QString&, const QPair<QDateTime, QSet<qint32> > &)), this, SLOT(add_info(const QString&, const QPair<QDateTime, QSet<qint32> > &)));
+        qRegisterMetaType<QSet<qint32> >("QSet<qint32>");
+        connect(scan[i], SIGNAL(done(const QString&, const QSet<qint32> &)), this, SLOT(add_info(const QString&, const QSet<qint32> &)));
         connect(scan[i], SIGNAL(indexing_finished()), this, SLOT(indexing_finished()));
         threadsForScanning[i]->start();
     }
@@ -183,7 +217,7 @@ void main_window::show_percentage() {
         progressBar->show();
 }
 
-void main_window::add_info(const QString& path, const QPair<QDateTime, QSet<qint32> >& _data) {
+void main_window::add_info(const QString& path, const QSet<qint32> &_data) {
     data[path] = _data;
 }
 
@@ -202,6 +236,8 @@ void main_window::find_word() {
     progressBar->setFormat("search progress: " + QString::number(0) + "%");
     progressBar->show();
     finishedThreads = 0;
+    for (auto v : threadsForSearch)
+        v->quit();
     threadsForSearch.resize(0);
     for (int i = 0; i < numberOfThreads; i++)
         threadsForSearch.push_back(new QThread);
@@ -217,7 +253,7 @@ void main_window::find_word() {
     for (int i = 0; i < threadsForSearch.size(); i++) {
         search.push_back(new finder(textToFind));
         for (int j = i; j < fileList.size(); j += threadsForSearch.size()) {
-            search[i]->add_file(fileList[j], data[fileList[j]].first, data[fileList[j]].second);
+            search[i]->add_file(fileList[j], data[fileList[j]]);
         }
     }
 

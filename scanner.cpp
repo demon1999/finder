@@ -41,7 +41,7 @@ void scanner::indexing() {
       QFile file(path);
       if(!file.open(QIODevice::ReadOnly)) {
           change_percentage();
-          emit done(path, {QDateTime(), QSet<qint32>()});
+          emit done(path, QSet<qint32>());
           continue;
       }
       qint64 cnt = file.size();
@@ -79,7 +79,7 @@ void scanner::indexing() {
               break;
           }
       }
-      emit done(path, {QFileInfo(path).lastModified(), s});
+      emit done(path, s);
       change_percentage();
     }
 }

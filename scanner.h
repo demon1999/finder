@@ -25,7 +25,7 @@ public slots:
 signals:
     void indexing_finished();
     void percentage();
-    void done(const QString &, const QPair<QDateTime, QSet<qint32> > &);
+    void done(const QString &, const QSet<qint32> &);
     void finished();
 };
 #endif // SCANNER_H

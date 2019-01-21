@@ -23,7 +23,6 @@ private:
     QVector<QString> data;
     struct MyInfo {
       QString path;
-      QDateTime last_modification;
       QSet<qint32> trigrams;
     };
     QVector<MyInfo> info;
@@ -35,7 +34,7 @@ private:
 public:
     finder(const QString& word);
     void set_flag();
-    void add_file(const QString &path, const QDateTime &date, const QSet<qint32> &trigrams);
+    void add_file(const QString &path, const QSet<qint32> &trigrams);
 public slots:
     void run();
 signals:

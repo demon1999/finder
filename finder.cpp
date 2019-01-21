@@ -19,8 +19,8 @@ finder::finder(const QString &word) {
     str = word;
 }
 
-void finder::add_file(const QString &path, const QDateTime &date, const QSet<qint32> &trigrams) {
-    info.push_back({path, date, trigrams});
+void finder::add_file(const QString &path, const QSet<qint32> &trigrams) {
+    info.push_back({path, trigrams});
 };
 
 void finder::get_prefix_function() {
@@ -62,10 +62,6 @@ void finder::find_word() {
     for (auto fileinfo : info) {
       if (aborted_flag == true)
           break;
-      if (QFileInfo(fileinfo.path).lastModified() != fileinfo.last_modification) {
-          change_percentage();
-          continue;
-      }
 
       bool ok = true;
       for (auto index : indexes) {
