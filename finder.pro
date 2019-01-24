@@ -27,12 +27,14 @@ SOURCES += \
         main.cpp \
         mainwindow.cpp \
 	scanner.cpp \
-	finder.cpp
+	finder.cpp \
+	data_saver.cpp
 
 HEADERS += \
         mainwindow.h \
 	scanner.h \
-	finder.h
+	finder.h \
+	data_saver.h
 
 FORMS += \
         mainwindow.ui

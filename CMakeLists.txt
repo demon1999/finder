@@ -8,5 +8,5 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 find_package(Qt5Widgets REQUIRED)
 
-add_executable(finder finder.h finder.cpp scanner.h scanner.cpp main.cpp mainwindow.h mainwindow.cpp)
+add_executable(finder finder.h finder.cpp data_saver.h data_saver.cpp scanner.h scanner.cpp main.cpp mainwindow.h mainwindow.cpp)
 qt5_use_modules(finder Widgets)

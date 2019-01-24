@@ -18,6 +18,7 @@
 #include <iterator>
 #include "scanner.h"
 #include "finder.h"
+#include "data_saver.h"
 
 namespace Ui {
 class MainWindow;
@@ -36,31 +37,27 @@ private slots:
     void select_options();
     void scan_directory(QString const& dir, QString const& text);
     void show_about_dialog();
-    void show_percentage();
-    void indexing_finished();
+    void show_percentage(int k);
     void select_directory(QString const &text);
-    void add_info(const QString &path, const QSet<qint32> &_data);
     void add_info(const QVector<QString>  &_data);
-    void directoryChanged(const QString &path);
-private:
-    bool is_running();
     void find_word();
-    void get_files(const QString &dir, QMap<QString, bool> &was, QVector<QString> &fileList, bool isSearch);
+private:
     void show_current();
 
+    bool is_running;
     QString currentDir;
     QString textToFind;
     QLabel *label;
-    QVector<QString> changed;
-    QFileSystemWatcher *watcher;
-    int cnt, currentCnt, numberOfThreads, finishedThreads;
     QProgressBar* progressBar;
-    QVector<scanner*> scan;
-    QVector<finder*> search;
-    QVector<QThread*> threadsForScanning, threadsForSearch;
+
     QMap<QString, QSet<qint32> > data;
+    data_saver* myData;
+    QThread* threadWithData;
     QVector<QString> fileNames;
     std::unique_ptr<Ui::MainWindow> ui;
+signals:
+    void start_scanning(QString);
+    void give_files(QString);
 };
 
 #endif // MAINWINDOW_H
