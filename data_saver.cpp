@@ -45,8 +45,7 @@ void data_saver::get_files(const QString &dir, QMap<QString, bool> &was, QSet<QS
             //ignore
         } else if (file_info.isReadable()) {
             if (file_info.isDir()) {
-                if (QDir(file_info.absoluteFilePath()).isReadable())
-                    get_files(file_info.absoluteFilePath(), was, fileList, isSearch);
+                get_files(file_info.absoluteFilePath(), was, fileList, isSearch);
             } else {
                 QString path = file_info.canonicalFilePath();
                 fileList.insert(path);

@@ -100,7 +100,8 @@ void finder::find_word() {
           }
           get += k;
           for (int i = 0; i < k; i++) {
-              while (cur_pref > 0 && buffer[i] != str[cur_pref]) {
+
+              while (cur_pref > 0 && (cur_pref == prefix_function.size() || buffer[i] != str[cur_pref])) {
                   cur_pref = prefix_function[cur_pref - 1];
               }
               if (buffer[i] == str[cur_pref])
