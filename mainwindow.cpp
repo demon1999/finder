@@ -87,7 +87,8 @@ void main_window::stop_scanning() {
 
 void main_window::scan_directory(QString const& dir, QString const& text)
 {
-
+    if (dir.size() == 0)
+        return;
     if (is_running) {
         QMessageBox::information(nullptr, "info", "You can't start new search, before previous one has finished.");
         return;
